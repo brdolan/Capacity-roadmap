@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prod VM Oversubscription · Release Roadmap</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- ============================================================
+  ROADMAP DATA — Edit everything in this section to update the map.
+  The rendering engine below reads from these objects automatically.
+  ============================================================ -->
+<script id="roadmap-data">
+
+// ─────────────────────────────────────────────────────────────
+// MAP CONFIG — global settings for the roadmap header/branding
+// ─────────────────────────────────────────────────────────────
+const MAP_CONFIG = {
+  routeCode:   "RC",                                    // circle badge label
+  title:       "Prod VM Oversubscription · Release Roadmap",
+  subtitle:    "Azure Resource Central · FY25 → FY26",
+  lineColor:   "#e8650a",                               // main transit line color
+  lineDark:    "#c2500a",                               // darker accent
+};
+
+// ─────────────────────────────────────────────────────────────
+// TARGET METRICS — shown in the strip at the bottom of the map
+// ─────────────────────────────────────────────────────────────
+const TARGET_METRICS = [
+  { label: "Target Savings",  value: "$30M / yr",                    sub: "≈ 1.1% COGS · Sellable Increase" },
+  { label: "Scope",           value: "1P Internal Production VMs",   sub: "AH2021 Hardware · Azure Public"   },
+  { label: "Out of Scope",    value: "External · Memory · Ded. Host", sub: "Future phases pending"           },
+];
+
+// ─────────────────────────────────────────────────────────────
+// STATIONS — each object is one stop on the subway line.
+//
+// Fields:
+//   id        unique key, used internally
+//   num       display number shown inside the dot  e.g. "01"
+//   label     short name shown on the angled label above the line
+//   sublabel  second line of the angled label (optional)
+//   date      date/quarter shown below the label
+//   type      "p0"       → filled black dot  (P0 Critical)
+//             "p1"       → hollow black dot  (P1 Required)
+//             "future"   → dashed gray dot   (P2 / Future)
+//             "milestone"→ double-ring dot   (major milestone)
+//   phase     "p0" | "p1" | "p2"  (controls phase zone coloring)
+//   band      color of the popup header bar
+//   caps      array of capability objects (see template below)
+//
+// To ADD a station: copy the template at the bottom and paste it
+// into this array in the position you want it on the line.
+// ─────────────────────────────────────────────────────────────
+const STATIONS = [
+
+  {
+    id:       "kickoff",
+    num:      "01",
+    label:    "Kickoff",
+    sublabel: "",
+    date:     "Q1 FY25",
+    type:     "p0",
+    phase:    "p0",
+    band:     "#e8650a",
+    caps: [
+      {
+        name: "Functional Spec Sign-off",
+        priority: "P0",
+        desc: "Finalize and sign off the Functional & Design Documentation. Establishes scope, success criteria, and out-of-scope items (External workloads, Memory/Disk oversubscription, Dedicated Hosts).",
+        team: "Brian Dolan · Eli Cortez · Raphael Ghelman · Roberto de Oliveira · Matheus Leao · Sid Panjwani",
+      },
+      {
+        name: "P0/P1/P2 Priority Framework Alignment",
+        priority: "P0",
+        desc: "Align stakeholders on priority tiers. P0 = crisis-mode requiring customer interaction. P1 = safe prod with zero customer notification. P2 = long-term efficiency maximization.",
+        team: "PM / Leadership",
+      },
+      {
+        name: "AH2021 Deployment Baseline",
+        priority: "P0",
+        desc: "Confirm AH2021 deployment status as a hard prerequisite gate. Oversubscription v3 CPUGroup priorities require AH2021. Track via Power BI deployment dashboard.",
+        team: "Compute / HyperV",
+      },
+    ],
+  },
+
+  {
+    id:       "hyperv",
+    num:      "02",
+    label:    "HyperV Foundation",
+    sublabel: "",
+    date:     "Q2 FY25",
+    type:     "p0",
+    phase:    "p0",
+    band:     "#c2500a",
+    caps: [
+      {
+        name: "Req 1: HyperV CPUGroup Priorities",
+        priority: "P0",
+        desc: "Prevent perf degradation on standard VMs via HyperV CPUGroup priorities. Two overlapping uncapped groups: Standard (top priority) and Oversubscribable (mid priority). ADO #2578435.",
+        team: "Compute · HyperV",
+      },
+      {
+        name: "Req 5: Fast Preemptive Scheduling",
+        priority: "P0",
+        desc: "Add HV scheduler controls for improved responsiveness. Prevents CPU contention from causing jitter when nodes are oversubscribed. ADO #25783536.",
+        team: "HyperV",
+      },
+      {
+        name: "Req 2: CPU Capping Throttle Control",
+        priority: "P0",
+        desc: "Ensure P99.9 of oversubscribed VMs are not throttled when CPU capping is active. Oversubscribed CPUGroup must remain uncapped even under standard VM priority.",
+        team: "Container",
+      },
+      {
+        name: "RD Agent v3 Support",
+        priority: "P0",
+        desc: "RD Agent detects OS version, supports Oversubscription V3: two overlapping uncapped groups, in-place VM moves between groups, new per-node metrics (#vCPUs, #LPs, IsOversubscribed, oversubscription rate).",
+        team: "Compute / RD Agent",
+      },
+    ],
+  },
+
+  {
+    id:       "mvp",
+    num:      "03",
+    label:    "MVP",
+    sublabel: "Capacity Crisis Ready",
+    date:     "Q3 FY25 · All P0",
+    type:     "milestone",
+    phase:    "p0",
+    band:     "#1a1a1a",
+    caps: [
+      {
+        name: "Req 3a: 1P Prod on AH2021 Hardware",
+        priority: "P0",
+        desc: "In Azure Public, oversubscribe only Internal Production VMs on AH2021 hardware. Oversubscription v3 prerequisite check must pass before activation.",
+        team: "Container / Allocator",
+      },
+      {
+        name: "Req 6: VM Exemption Filters",
+        priority: "P0",
+        desc: "Exempt high-risk VMs: PPS-created, HOBO subscriptions, Full Node VMs (D15i/DS15i/E64i), Dedicated Hosts, Non-LiveMigratable, CXP-flagged sensitive VMs (Gaming, MDM latency-sensitive).",
+        team: "Resource Central (RC)",
+      },
+      {
+        name: "Req 7: Node-Full Gate",
+        priority: "P0",
+        desc: "Only oversubscribe when a node is full enough to produce savings. CPUGroup priority mechanism allows oversubscribable VMs to use available cores naturally without enforcement when space exists.",
+        team: "RC / Allocator",
+      },
+      {
+        name: "Req 8a: Oversubscribe Existing VMs via HOLMES LM",
+        priority: "P0",
+        desc: "HOLMES engine periodically scans fleet VMs against current oversubscription policies. Updates oversubscribable tag without VM reboot. Live Migration moves VMs between CPUGroups. ADO #7213642.",
+        team: "HOLMES",
+      },
+      {
+        name: "Req 8b: Un-oversubscribe via LM",
+        priority: "P0",
+        desc: "When un-oversubscribing, recalculate host resource accounting. If VM set doesn't fit, LM the VM with the smallest predicted LM score. Handle the fully-packed region edge case.",
+        team: "RC / HOLMES",
+      },
+      {
+        name: "Req 12: Customer Force/Block Lists",
+        priority: "P0",
+        desc: "Force list (always oversubscribe) and block list (never) at VM level (12a) and Subscription level (12b). Changes propagate to existing VMs on next Holmes sweep. ADO #7208861.",
+        team: "RC",
+      },
+      {
+        name: "Req 14: Platform On/Off Controls",
+        priority: "P0",
+        desc: "Toggle oversubscription by: node (14a), machine pool (14b), AZ (14c), region (14d), CPU architecture — Intel (14e) / AMD / ARM.",
+        team: "RC",
+      },
+      {
+        name: "Req 16 & 17: Intel + AMD Support",
+        priority: "P0",
+        desc: "Enable oversubscription on Intel and AMD hardware. AMD: some clusters use MinRoot cores — #LPs should reflect cores available to standard VMs, excluding MinRoot.",
+        team: "RC",
+      },
+      {
+        name: "Req 19: AzSC Dedicated Cluster Support",
+        priority: "P0",
+        desc: "Safely oversubscribe on dedicated clusters (AzSC). Requires careful policy crafting to avoid performance-sensitive workloads. Different exemption rules than standard deployment.",
+        team: "RC",
+      },
+    ],
+  },
+
+  {
+    id:       "safeprod",
+    num:      "04",
+    label:    "Safe Prod",
+    sublabel: "No Notification Required",
+    date:     "Q1 FY26 · P1 Gate",
+    type:     "p1",
+    phase:    "p1",
+    band:     "#2980b9",
+    caps: [
+      {
+        name: "Req 20: Sellable Gains Measurement",
+        priority: "P0",
+        desc: "Measure sellable gains by node, cluster, AZ, and region pivots. Target: 1.1% sellable increase (~$30M/year). Required to validate crisis-mode value before P1 safe-mode expansion.",
+        team: "RC / CCC",
+      },
+      {
+        name: "Req 21: AIR-J Node-Level Monitoring",
+        priority: "P0",
+        desc: "Measure AIR-J (CPU jitter) at node level segmented by HyperV priority group. Proves isolation between Standard and Oversubscribable CPUGroups.",
+        team: "AIR-J",
+      },
+      {
+        name: "Req 25: Rollout Health Dashboard",
+        priority: "P0",
+        desc: "Feature rollout progression and health tracking: AH2021 deployment coverage, oversubscription activation rate, per-region savings in real-time.",
+        team: "RC",
+      },
+      {
+        name: "Req 10: Auto-Reduce Oversubscription Rate",
+        priority: "P1",
+        desc: "Automatically reduce oversubscription rate whenever possible without decreasing savings. Optimizes resource usage without manual intervention.",
+        team: "RC",
+      },
+      {
+        name: "Req 3b: RS1.86 Pre-AH2021 NonProd Support",
+        priority: "P0",
+        desc: "Oversubscribe NonProd and explicitly specified subscriptions on hosts running RS1.86 (pre-AH2021). Maintains continuity while AH2021 deployment progresses.",
+        team: "Container / Allocator",
+      },
+    ],
+  },
+
+  {
+    id:       "telemetry",
+    num:      "05",
+    label:    "Telemetry Ready",
+    sublabel: "",
+    date:     "Q2 FY26",
+    type:     "p1",
+    phase:    "p1",
+    band:     "#e67e22",
+    caps: [
+      {
+        name: "Multi-Pivot Savings Reporting",
+        priority: "P0",
+        desc: "Full sellable gains reporting by node, cluster, AZ, region, and architecture. Proves $30M/year savings hypothesis and drives executive confidence for broader rollout.",
+        team: "RC / CCC",
+      },
+      {
+        name: "HyperV Group AIR-J Separation",
+        priority: "P0",
+        desc: "AIR-J measurement separated by CPUGroup (Standard vs Oversubscribable). Critical proof that CPUGroup priority isolation is working and standard VMs are unaffected.",
+        team: "AIR-J",
+      },
+      {
+        name: "Rollout Feature Health Dashboard",
+        priority: "P0",
+        desc: "Operational dashboard: rollout speed, oversubscription rate per region, anomaly detection for jitter spikes, AH2021 prerequisite coverage, savings realization tracking.",
+        team: "RC",
+      },
+      {
+        name: "RD Agent vCPU/LP Metrics Export",
+        priority: "P0",
+        desc: "RD Agent exposes per-node: #vCPUs, #LPs, oversubscription rate = 100×((#vCPUs/#LPs)−1), IsOversubscribed. Handles MinRoot-adjusted LPs on AMD clusters.",
+        team: "Compute / RD Agent",
+      },
+    ],
+  },
+
+  {
+    id:       "mitigation",
+    num:      "06",
+    label:    "Mitigation Ready",
+    sublabel: "",
+    date:     "Q2 FY26 · Future",
+    type:     "future",
+    phase:    "p2",
+    band:     "#888",
+    caps: [
+      {
+        name: "Req 26 [CUT]: AIR-J Red Node Rate Reduction",
+        priority: "P2",
+        desc: "CUT from MVP. Future: automatically lower oversubscription rate on AIR-J 'red' (high jitter) nodes back to 100%. Requires per-node AIR-J threshold automation.",
+        team: "RC",
+      },
+      {
+        name: "Req 27 [CUT]: Allocation Deter on Red Nodes",
+        priority: "P2",
+        desc: "CUT from MVP. Future: use Allocation preference rules to deter placement on AIR-J 'red' nodes with subscription rate > 100%.",
+        team: "RC / Allocator",
+      },
+      {
+        name: "Req 28 [CUT]: Auto Un-oversubscribe on Perf Degradation",
+        priority: "P2",
+        desc: "CUT from MVP. Future: detect VMs with significant CPU performance loss, auto-add to avoid list + trigger LM. Open: LM vs SH, timing, fully-packed region handling.",
+        team: "RC / HOLMES",
+      },
+      {
+        name: "Req 29 [CUT]: Policy-Driven Auto Un-oversubscription",
+        priority: "P2",
+        desc: "CUT from MVP. Future: un-oversubscribe VMs automatically based on policy thresholds (AIR-J, CPU %, time-of-day). HOLMES policy engine integration required.",
+        team: "RC / HOLMES",
+      },
+    ],
+  },
+
+  {
+    id:       "ga",
+    num:      "07",
+    label:    "Platform Efficiency",
+    sublabel: "",
+    date:     "Q3 FY26 · P2",
+    type:     "future",
+    phase:    "p2",
+    band:     "#888",
+    caps: [
+      {
+        name: "Req 11: Oversubscribed VM Co-location",
+        priority: "P2",
+        desc: "Allocator preference rules to co-locate oversubscribed VMs on same nodes. Concentrates oversubscription, maximizes savings density, simplifies mitigation responses.",
+        team: "Allocator",
+      },
+      {
+        name: "Req 18: ARM Architecture Support",
+        priority: "P2",
+        desc: "Enable oversubscription on ARM-based hardware (Cobalt and future ARM). Requires ARM-specific CPUGroup priority testing and jitter characterization.",
+        team: "RC",
+      },
+      {
+        name: "Req 10 ML: High-CPU Predictive Filtering",
+        priority: "P1",
+        desc: "RC ML models predict VM CPU utilization at allocation time. Filter out high-CPU VMs before marking as oversubscribable. Reduces risk without cutting eligible pool.",
+        team: "Resource Central (RC)",
+      },
+      {
+        name: "Adaptive Oversubscription Rate (ML-Assisted)",
+        priority: "P1",
+        desc: "Dynamically right-size each node's oversubscription level using ML-predicted utilization patterns. Reduces unnecessary performance risk while maintaining savings targets.",
+        team: "RC",
+      },
+      {
+        name: "External Azure Expansion (Post-Scope)",
+        priority: "P2",
+        desc: "Currently OUT OF SCOPE. Future: extend oversubscription to 3rd party external Azure workloads. Requires additional communication strategies, higher quality bar, customer-facing policy changes.",
+        team: "PM / Engineering Leadership",
+      },
+    ],
+  },
+
+  // ── STATION TEMPLATE ──────────────────────────────────────
+  // Copy this block, uncomment it, and fill in your values.
+  // Then add a comma after the station above.
+  //
+  // {
+  //   id:       "my_station",       // unique id, no spaces
+  //   num:      "08",               // display number in dot
+  //   label:    "My Station",       // angled label line 1
+  //   sublabel: "",                 // angled label line 2 (optional)
+  //   date:     "Q4 FY26",          // date shown below label
+  //   type:     "p0",               // "p0" | "p1" | "future" | "milestone"
+  //   phase:    "p2",               // "p0" | "p1" | "p2"
+  //   band:     "#e8650a",          // popup header color
+  //   caps: [
+  //     {
+  //       name:     "Capability Name",
+  //       priority: "P0",           // "P0" | "P1" | "P2"
+  //       desc:     "Full description shown on hover.",
+  //       team:     "Team A · Team B",
+  //     },
+  //   ],
+  // },
+  // ──────────────────────────────────────────────────────────
+
+];
+
+// ─────────────────────────────────────────────────────────────
+// DECISIONS — the log panel on the right side.
+//
+// status options:
+//   "closed"    → Closed · Decision Made
+//   "aligned"   → Aligned · Design in Progress
+//   "open-hot"  → Open Issue · Discussion in Progress
+//   "open-cold" → Open Issue · Not Started
+//
+// To ADD a decision: copy the template at the bottom of the array.
+// To REMOVE: delete the object (and its trailing comma).
+// ─────────────────────────────────────────────────────────────
+const DECISIONS = [
+
+  {
+    id:     1,
+    title:  "CPUGroup Priorities vs Core Affinization — approach selection",
+    status: "closed",
+  },
+  {
+    id:     2,
+    title:  "Oversubscription V2 → V3 transition strategy for pre-AH2021 nodes",
+    status: "aligned",
+  },
+  {
+    id:     3,
+    title:  "HOBO: differentiate internal vs external HOBO subscriptions for oversubscription eligibility",
+    status: "open-hot",
+  },
+  {
+    id:     4,
+    title:  "Can CXP team solely identify Gaming/latency-sensitive VMs?",
+    status: "open-cold",
+  },
+  {
+    id:     5,
+    title:  "Un-oversubscription path when region is fully packed — LM prioritization",
+    status: "open-hot",
+  },
+  {
+    id:     6,
+    title:  "Method A (ML filter) vs B (risk distribution) vs C (hybrid) for oversubscription selection",
+    status: "closed",
+  },
+  {
+    id:     7,
+    title:  "Mitigation mechanism: Live Migration vs Service Healing — per-customer preference pipeline",
+    status: "open-cold",
+  },
+
+  // ── DECISION TEMPLATE ─────────────────────────────────────
+  // {
+  //   id:     8,                    // increment from last id
+  //   title:  "My decision topic",
+  //   status: "open-cold",          // start new ones here
+  // },
+  // ──────────────────────────────────────────────────────────
+
+];
+
+</script>
+<!-- ============================================================
+  END OF DATA SECTION — rendering engine below, edit with care
+  ============================================================ -->
+
+<style>
+/* ── Reset & base ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:           #f5f3ef;
+  --white:        #ffffff;
+  --border:       #d0ccc4;
+  --text:         #1a1a1a;
+  --text-mid:     #444;
+  --text-light:   #888;
+  --stop-full:    #1a1a1a;
+  --badge-p0:     #c0392b;
+  --badge-p1:     #e67e22;
+  --badge-p2:     #2980b9;
+}
+body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── Header ── */
+header {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 14px 36px; display: flex; align-items: center;
+  justify-content: space-between; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+.route-badge { display: flex; align-items: center; gap: 14px; }
+#route-circle {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif; font-size: 20px;
+  font-weight: 800; color: #fff; flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.route-name {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 24px;
+  font-weight: 700; letter-spacing: 0.5px; line-height: 1;
+}
+.route-sub { font-size: 11px; color: var(--text-light); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; }
+.hdr-legend { display: flex; align-items: center; gap: 20px; }
+.leg-item { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; color: var(--text-mid); }
+
+/* ── Layout ── */
+.main { display: flex; min-height: calc(100vh - 62px); }
+.map-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.transit-wrap { flex: 1; padding: 32px 0 0; overflow-x: auto; overflow-y: visible; }
+.map-svg { display: block; min-width: 900px; }
+
+/* ── Station interactivity ── */
+.stn { cursor: pointer; }
+.stn:hover .dot-shape { filter: brightness(1.3); }
+.dot-shape { transition: filter 0.15s; }
+
+/* ── Legend strip ── */
+.legend-strip {
+  background: var(--white); border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); margin: 14px 36px 0;
+  padding: 14px 20px; display: flex; gap: 36px; align-items: flex-start;
+}
+.leg-block { display: flex; flex-direction: column; gap: 5px; }
+.leg-block-title {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 12px;
+  font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;
+}
+.leg-row { display: flex; align-items: center; gap: 9px; font-size: 11px; color: var(--text-mid); font-weight: 500; }
+.leg-sym { width: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* ── Target strip ── */
+.target-strip {
+  margin: 12px 36px 20px; padding: 12px 22px;
+  display: flex; gap: 36px; align-items: center;
+  border-left: 6px solid var(--lineDark, #c2500a);
+}
+.ts-div { width: 1px; height: 32px; background: rgba(255,255,255,0.3); }
+.ts-block { display: flex; flex-direction: column; }
+.ts-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.65); letter-spacing: 2px; text-transform: uppercase; }
+.ts-val   { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; color: #fff; line-height: 1.1; margin-top: 1px; }
+.ts-sub   { font-size: 10px; color: rgba(255,255,255,0.65); font-weight: 500; }
+
+/* ── Decisions panel ── */
+.decisions { width: 290px; flex-shrink: 0; background: var(--white); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+.dec-hdr { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); background: #faf9f7; }
+.dec-title { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+.dec-sub { font-size: 10px; color: var(--text-light); letter-spacing: 0.5px; margin-top: 3px; }
+.dec-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+.dec-card { background: #faf9f7; border: 1px solid var(--border); padding: 10px 12px; transition: box-shadow 0.15s; }
+.dec-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.09); }
+.dec-card-title { font-size: 11.5px; font-weight: 600; color: var(--text); margin-bottom: 7px; line-height: 1.45; }
+.d-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Barlow Condensed', sans-serif; font-size: 10px;
+  font-weight: 700; letter-spacing: 0.5px; padding: 3px 8px;
+  cursor: pointer; text-transform: uppercase; border: 1.5px solid transparent;
+  transition: opacity 0.14s;
+}
+.d-badge:hover { opacity: 0.75; }
+.d-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: inline-block; flex-shrink: 0; }
+.s-closed    { background: #eafaf1; color: #1e8449; border-color: #a9dfbf; }
+.s-aligned   { background: #eaf4fb; color: #1a5276; border-color: #a9cce3; }
+.s-open-hot  { background: #fef9e7; color: #935116; border-color: #f8c471; }
+.s-open-cold { background: #fdedec; color: #922b21; border-color: #f1948a; }
+.add-btn {
+  margin: 0 10px 12px; padding: 8px; background: transparent;
+  border: 1.5px dashed var(--border); color: var(--text-light);
+  font-family: 'Barlow Condensed', sans-serif; font-size: 12px;
+  font-weight: 600; letter-spacing: 1px; cursor: pointer;
+  text-align: center; text-transform: uppercase; transition: border-color 0.15s, color 0.15s;
+}
+.add-btn:hover { border-color: #e8650a; color: #e8650a; }
+
+/* ── Popup ── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,10,10,0.5); z-index: 500;
+  align-items: center; justify-content: center; backdrop-filter: blur(3px);
+}
+.overlay.on { display: flex; }
+.popup {
+  background: var(--white); width: 580px; max-width: 95vw; max-height: 84vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: rise 0.18s ease-out; border-radius: 2px; overflow: hidden;
+}
+@keyframes rise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.popup-band { height: 6px; flex-shrink: 0; }
+.popup-head {
+  padding: 16px 20px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-between;
+  flex-shrink: 0; background: #faf9f7;
+}
+.popup-pill { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.popup-circle {
+  width: 28px; height: 28px; border-radius: 50%; background: #e8650a;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 800; color: #fff;
+}
+.popup-step-txt { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-light); }
+.popup-name { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 700; line-height: 1.1; letter-spacing: 0.5px; }
+.popup-date { font-size: 11px; color: var(--text-light); margin-top: 4px; font-weight: 500; }
+.popup-close {
+  background: #f0ede8; border: none; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer; color: var(--text-mid);
+  transition: background 0.13s; flex-shrink: 0; border-radius: 2px;
+}
+.popup-close:hover { background: #e0ddd8; }
+.popup-body { padding: 14px 20px 18px; overflow-y: auto; flex: 1; }
+.cap-sec {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 10px;
+  font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text-light); margin-bottom: 9px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.cap-list { display: flex; flex-direction: column; gap: 5px; }
+.cap {
+  border: 1px solid var(--border); padding: 10px 12px; background: #faf9f7;
+  cursor: default; transition: box-shadow 0.13s, border-color 0.13s;
+}
+.cap:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.09); border-color: #b0a898; }
+.cap-row { display: flex; align-items: center; gap: 9px; }
+.cap-name { font-size: 12.5px; font-weight: 600; flex: 1; }
+.pb { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; padding: 2px 8px; flex-shrink: 0; }
+.pb-p0 { background: #fdedec; color: var(--badge-p0); border: 1px solid #f1948a; }
+.pb-p1 { background: #fef9e7; color: var(--badge-p1); border: 1px solid #f8c471; }
+.pb-p2 { background: #eaf4fb; color: var(--badge-p2); border: 1px solid #a9cce3; }
+.cap-detail { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text-mid); line-height: 1.6; }
+.cap:hover .cap-detail { display: block; }
+.cap-team { margin-top: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; display: flex; gap: 5px; }
+.cap-team::before { content: '▸ TEAM:'; flex-shrink: 0; }
+
+/* ── Status picker ── */
+.picker-overlay { display: none; position: fixed; inset: 0; z-index: 600; background: rgba(10,10,10,0.3); align-items: center; justify-content: center; }
+.picker-overlay.on { display: flex; }
+.picker { background: var(--white); padding: 18px; width: 280px; box-shadow: 0 16px 50px rgba(0,0,0,0.25); border-radius: 2px; animation: rise 0.15s ease-out; }
+.picker h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 11px; }
+.picker-opts { display: flex; flex-direction: column; gap: 5px; }
+.picker-opt { display: flex; align-items: center; gap: 9px; padding: 9px 12px; cursor: pointer; font-size: 11.5px; font-weight: 600; background: #faf9f7; border: 1px solid var(--border); color: var(--text); transition: background 0.12s; }
+.picker-opt:hover { background: #f0ede8; }
+.picker-opt .pdot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.picker-cancel { margin-top: 8px; width: 100%; padding: 8px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 11.5px; font-weight: 600; color: var(--text-light); transition: color 0.13s; }
+.picker-cancel:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- ── Shell: populated by JS from data above ── -->
+<header>
+  <div class="route-badge">
+    <div id="route-circle"></div>
+    <div>
+      <div class="route-name" id="route-title"></div>
+      <div class="route-sub"  id="route-sub"></div>
+    </div>
+  </div>
+  <div class="hdr-legend">
+    <div class="leg-item">
+      <svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="#1a1a1a" stroke="white" stroke-width="2"/></svg>P0 Critical
+    </div>
+    <div class="leg-item">
+      <svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="white" stroke="#1a1a1a" stroke-width="2.5"/></svg>P1 Required
+    </div>
+    <div class="leg-item">
+      <svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="white" stroke="#aaa" stroke-width="2" stroke-dasharray="3 2"/></svg>P2 / Future
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="map-area">
+    <div class="transit-wrap">
+      <svg id="map-svg" class="map-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="legend-strip">
+      <div class="leg-block">
+        <div class="leg-block-title">Station Service</div>
+        <div class="leg-row"><div class="leg-sym"><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="#1a1a1a" stroke="white" stroke-width="2"/></svg></div>P0 · Critical — Required for crisis-mode oversubscription</div>
+        <div class="leg-row"><div class="leg-sym"><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="white" stroke="#1a1a1a" stroke-width="2.5"/></svg></div>P1 · Required — Safe prod, no customer notification needed</div>
+        <div class="leg-row"><div class="leg-sym"><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="white" stroke="#aaa" stroke-width="2" stroke-dasharray="3 2"/></svg></div>P2 · Future — Long-term efficiency; CUT from MVP</div>
+      </div>
+      <div style="width:1px;height:60px;background:#e0ddd8;"></div>
+      <div class="leg-block">
+        <div class="leg-block-title">Key Teams</div>
+        <div class="leg-row">RC · Resource Central — ML models, oversubscription controls, telemetry</div>
+        <div class="leg-row">HyperV · Compute — CPUGroup priorities, preemptive scheduler, RD Agent</div>
+        <div class="leg-row">HOLMES · Allocator · Container · AIR-J — LM, routing, monitoring</div>
+      </div>
+    </div>
+
+    <div class="target-strip" id="target-strip"></div>
+  </div>
+
+  <div class="decisions">
+    <div class="dec-hdr">
+      <div class="dec-title">Decision Log</div>
+      <div class="dec-sub">Major architecture &amp; design decisions — click badge to update status</div>
+    </div>
+    <div class="dec-list" id="decList"></div>
+    <button class="add-btn" onclick="addDecision()">+ Add Decision</button>
+  </div>
+</div>
+
+<!-- Popup -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="popup">
+    <div class="popup-band" id="popBand"></div>
+    <div class="popup-head">
+      <div>
+        <div class="popup-pill">
+          <div class="popup-circle" id="popNum"></div>
+          <span class="popup-step-txt" id="popStep"></span>
+        </div>
+        <div class="popup-name" id="popName"></div>
+        <div class="popup-date" id="popDate"></div>
+      </div>
+      <button class="popup-close" onclick="closePopup()">✕</button>
+    </div>
+    <div class="popup-body">
+      <div class="cap-sec">Capabilities &amp; Requirements — hover any row for full detail</div>
+      <div class="cap-list" id="capList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Status picker -->
+<div class="picker-overlay" id="pickerOverlay">
+  <div class="picker">
+    <h3>Set Decision Status</h3>
+    <div class="picker-opts">
+      <div class="picker-opt" onclick="setStatus('closed')">   <span class="pdot" style="background:#1e8449"></span>Closed · Decision Made</div>
+      <div class="picker-opt" onclick="setStatus('aligned')">  <span class="pdot" style="background:#1a5276"></span>Aligned · Design in Progress</div>
+      <div class="picker-opt" onclick="setStatus('open-hot')"> <span class="pdot" style="background:#935116"></span>Open Issue · Discussion in Progress</div>
+      <div class="picker-opt" onclick="setStatus('open-cold')"><span class="pdot" style="background:#922b21"></span>Open Issue · Not Started</div>
+    </div>
+    <button class="picker-cancel" onclick="closePicker()">Cancel</button>
+  </div>
+</div>
+
+<!-- ============================================================
+  RENDERING ENGINE — reads from data objects above and builds
+  the SVG map and all UI. Edit with care.
+  ============================================================ -->
+<script>
+
+// ── Constants ──────────────────────────────────────────────
+const SVG_NS    = "http://www.w3.org/2000/svg";
+const LINE_Y    = 186;      // y-coordinate of the transit line
+const PAD_LEFT  = 60;       // left margin
+const PAD_RIGHT = 60;       // right margin
+const DOT_R     = {         // dot radius by station type
+  p0:        12,
+  p1:        12,
+  future:    12,
+  milestone: 16,
+};
+const LABEL_ANGLE = -55;    // degrees for angled station labels
+const LABEL_LINE_Y = 155;   // where the tick line meets the label
+
+const STATUS_META = {
+  "closed":    { label: "CLOSED · DECISION MADE",        cls: "s-closed",    dot: "#1e8449" },
+  "aligned":   { label: "ALIGNED · DESIGN IN PROGRESS",  cls: "s-aligned",   dot: "#1a5276" },
+  "open-hot":  { label: "OPEN · DISCUSSION IN PROGRESS", cls: "s-open-hot",  dot: "#935116" },
+  "open-cold": { label: "OPEN ISSUE · NOT STARTED",      cls: "s-open-cold", dot: "#922b21" },
+};
+
+const PHASE_META = {
+  p0: { color: MAP_CONFIG.lineColor, opacity: 0.12, textColor: MAP_CONFIG.lineDark, label: "PHASE 1 · P0" },
+  p1: { color: "#2980b9",            opacity: 0.10, textColor: "#2980b9",            label: "PHASE 2 · P1" },
+  p2: { color: "#888",               opacity: 0.08, textColor: "#888",               label: "PHASE 3 · P2" },
+};
+
+// ── Runtime state ──────────────────────────────────────────
+let decisions = DECISIONS.map(d => ({ ...d }));  // clone so we can mutate
+let nextDecId  = Math.max(...decisions.map(d => d.id)) + 1;
+let pickerTargetId = null;
+
+// ── Boot ───────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  applyConfig();
+  buildMap();
+  buildTargetStrip();
+  renderDecisions();
+});
+
+// ── Apply MAP_CONFIG to header ──────────────────────────────
+function applyConfig() {
+  const circle = document.getElementById("route-circle");
+  circle.textContent = MAP_CONFIG.routeCode;
+  circle.style.background = MAP_CONFIG.lineColor;
+
+  document.getElementById("route-title").textContent = MAP_CONFIG.title;
+  document.getElementById("route-sub").textContent   = MAP_CONFIG.subtitle;
+}
+
+// ── Build SVG map ───────────────────────────────────────────
+function buildMap() {
+  const svg      = document.getElementById("map-svg");
+  const n        = STATIONS.length;
+  const svgW     = Math.max(900, n * 120 + PAD_LEFT + PAD_RIGHT);
+  const svgH     = 300;
+  const spacing  = (svgW - PAD_LEFT - PAD_RIGHT) / (n - 1);
+
+  svg.setAttribute("viewBox", `0 0 ${svgW} ${svgH}`);
+  svg.style.width    = "100%";
+  svg.style.minWidth = svgW + "px";
+
+  // Compute x positions
+  const xs = STATIONS.map((_, i) => PAD_LEFT + i * spacing);
+
+  // ── Transit line ──
+  svgLine(svg, PAD_LEFT - 10, LINE_Y, svgW - PAD_RIGHT + 10, LINE_Y,
+    MAP_CONFIG.lineColor, 10, { "stroke-linecap": "round" });
+
+  // ── Phase zones (background rectangles below line) ──
+  let phaseStart = null, lastPhase = null;
+  STATIONS.forEach((s, i) => {
+    if (s.phase !== lastPhase) {
+      if (lastPhase !== null) drawPhaseZone(svg, xs[i - 1], xs[i], lastPhase, LINE_Y, svgH);
+      phaseStart = xs[i]; lastPhase = s.phase;
+    }
+    if (i === n - 1) drawPhaseZone(svg, phaseStart, xs[i], s.phase, LINE_Y, svgH);
+  });
+
+  // ── Stations ──
+  STATIONS.forEach((s, i) => {
+    const x = xs[i];
+    drawStation(svg, s, x, LINE_Y);
+  });
+
+  // ── Hint text ──
+  svgText(svg, svgW / 2, svgH - 18, "Click any station to view capabilities · hover capability row for details",
+    { "text-anchor": "middle", "font-size": "10", fill: "#bbb", "font-family": "'Barlow',sans-serif" });
+}
+
+function drawPhaseZone(svg, x1, x2, phase, lineY, svgH) {
+  const m   = PHASE_META[phase];
+  const pad = 12;
+  const g   = svgEl("g");
+
+  const rect = svgEl("rect");
+  Object.assign(rect, {});
+  setAttrs(rect, { x: x1 - pad, y: lineY + 14, width: (x2 - x1) + pad * 2, height: 20, rx: 2,
+    fill: m.color, opacity: m.opacity });
+  g.appendChild(rect);
+
+  const t = svgEl("text");
+  setAttrs(t, { x: (x1 + x2) / 2, y: lineY + 27, "text-anchor": "middle",
+    "font-family": "'Barlow Condensed',sans-serif", "font-size": "9",
+    "font-weight": "700", "letter-spacing": "1.5", fill: m.textColor, opacity: 1 });
+  t.textContent = m.label;
+  g.appendChild(t);
+  svg.appendChild(g);
+}
+
+function drawStation(svg, station, x, lineY) {
+  const g = svgEl("g");
+  g.setAttribute("class", "stn");
+  g.setAttribute("onclick", `openStation('${station.id}')`);
+
+  const r    = DOT_R[station.type] || 12;
+  const type = station.type;
+
+  // milestone: outer ring
+  if (type === "milestone") {
+    const ring = svgEl("circle");
+    setAttrs(ring, { cx: x, cy: lineY, r: r + 7, fill: "none",
+      stroke: MAP_CONFIG.lineColor, "stroke-width": 2.5 });
+    g.appendChild(ring);
+  }
+
+  // dot
+  const dot = svgEl("circle");
+  dot.setAttribute("class", "dot-shape");
+  const dotAttrs = { cx: x, cy: lineY, r: r, "stroke-width": type === "future" ? 2 : 3 };
+  if (type === "p0" || type === "milestone") {
+    Object.assign(dotAttrs, { fill: "#1a1a1a", stroke: "white" });
+  } else if (type === "p1") {
+    Object.assign(dotAttrs, { fill: "white", stroke: "#1a1a1a" });
+  } else { // future
+    Object.assign(dotAttrs, { fill: "white", stroke: "#aaa",
+      "stroke-dasharray": "4 3" });
+  }
+  setAttrs(dot, dotAttrs);
+  g.appendChild(dot);
+
+  // step number inside dot
+  const numT = svgEl("text");
+  setAttrs(numT, { x: x, y: lineY + 4, "text-anchor": "middle",
+    "font-family": "'Barlow Condensed',sans-serif", "font-size": "9",
+    "font-weight": "800",
+    fill: (type === "p0" || type === "milestone") ? "white" : "#888",
+    "pointer-events": "none" });
+  numT.textContent = station.num;
+  g.appendChild(numT);
+
+  // tick line up to label
+  const tickLine = svgEl("line");
+  setAttrs(tickLine, { x1: x, y1: lineY - r, x2: x, y2: LABEL_LINE_Y,
+    stroke: "#ccc", "stroke-width": 1, "stroke-dasharray": "3 2" });
+  g.appendChild(tickLine);
+
+  // label (angled)
+  const labelGroup = svgEl("g");
+  labelGroup.setAttribute("transform", `rotate(${LABEL_ANGLE}, ${x}, ${LABEL_LINE_Y})`);
+
+  const lbl = svgEl("text");
+  setAttrs(lbl, { x: x, y: LABEL_LINE_Y,
+    "font-family": "'Barlow Condensed',sans-serif",
+    "font-size": station.type === "milestone" ? "14" : "13",
+    "font-weight": station.type === "milestone" ? "700" : "600",
+    fill: type === "future" ? "#aaa" : "#1a1a1a" });
+  lbl.textContent = station.label;
+  labelGroup.appendChild(lbl);
+
+  if (station.sublabel) {
+    const sub = svgEl("text");
+    setAttrs(sub, { x: x, y: LABEL_LINE_Y + 15,
+      "font-family": "'Barlow Condensed',sans-serif", "font-size": "11",
+      "font-weight": "500", fill: type === "future" ? "#bbb" : "#888" });
+    sub.textContent = station.sublabel;
+    labelGroup.appendChild(sub);
+  }
+
+  const dateT = svgEl("text");
+  setAttrs(dateT, { x: x, y: LABEL_LINE_Y + (station.sublabel ? 28 : 14),
+    "font-family": "'Barlow Condensed',sans-serif", "font-size": "10",
+    "font-weight": "500", fill: "#aaa" });
+  dateT.textContent = station.date;
+  labelGroup.appendChild(dateT);
+
+  g.appendChild(labelGroup);
+
+  // milestone marker below
+  if (type === "milestone") {
+    const tick = svgEl("line");
+    setAttrs(tick, { x1: x, y1: lineY + r + 4, x2: x, y2: lineY + r + 14,
+      stroke: MAP_CONFIG.lineColor, "stroke-width": 2 });
+    g.appendChild(tick);
+
+    const mT = svgEl("text");
+    setAttrs(mT, { x: x, y: lineY + r + 25, "text-anchor": "middle",
+      "font-family": "'Barlow Condensed',sans-serif", "font-size": "9",
+      "font-weight": "700", fill: MAP_CONFIG.lineColor, "letter-spacing": "1" });
+    mT.textContent = "MILESTONE";
+    g.appendChild(mT);
+  }
+
+  svg.appendChild(g);
+}
+
+// ── Build target strip ──────────────────────────────────────
+function buildTargetStrip() {
+  const strip = document.getElementById("target-strip");
+  strip.style.background   = MAP_CONFIG.lineColor;
+  strip.style.borderLeftColor = MAP_CONFIG.lineDark;
+
+  strip.innerHTML = TARGET_METRICS.map((m, i) => `
+    ${i > 0 ? '<div class="ts-div"></div>' : ''}
+    <div class="ts-block">
+      <div class="ts-label">${m.label}</div>
+      <div class="ts-val">${m.value}</div>
+      <div class="ts-sub">${m.sub}</div>
+    </div>`).join('');
+}
+
+// ── Station popup ───────────────────────────────────────────
+function openStation(id) {
+  const s = STATIONS.find(x => x.id === id);
+  if (!s) return;
+
+  document.getElementById("popBand").style.background = s.band;
+  document.getElementById("popNum").textContent        = s.num;
+  document.getElementById("popStep").textContent       = `Step ${s.num}${s.type === "milestone" ? " · Milestone" : s.type === "future" ? " · Future" : ""}`;
+  document.getElementById("popName").textContent       = `${s.label}${s.sublabel ? " — " + s.sublabel : ""}`;
+  document.getElementById("popDate").textContent       = s.date;
+
+  document.getElementById("capList").innerHTML = s.caps.map(c => `
+    <div class="cap">
+      <div class="cap-row">
+        <span class="cap-name">${c.name}</span>
+        <span class="pb pb-${c.priority.toLowerCase()}">${c.priority}</span>
+      </div>
+      <div class="cap-detail">
+        ${c.desc}
+        <div class="cap-team" style="color:${MAP_CONFIG.lineColor}">${c.team}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById("overlay").classList.add("on");
+}
+function closePopup()      { document.getElementById("overlay").classList.remove("on"); }
+function overlayClick(e)   { if (e.target === document.getElementById("overlay")) closePopup(); }
+
+// ── Decisions ───────────────────────────────────────────────
+function renderDecisions() {
+  document.getElementById("decList").innerHTML = decisions.map(d => {
+    const m = STATUS_META[d.status];
+    return `<div class="dec-card">
+      <div class="dec-card-title">${d.title}</div>
+      <button class="d-badge ${m.cls}" onclick="openPicker(${d.id}, event)">
+        <span class="dot"></span>${m.label}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function openPicker(id, e) {
+  e.stopPropagation();
+  pickerTargetId = id;
+  document.getElementById("pickerOverlay").classList.add("on");
+}
+function closePicker() {
+  document.getElementById("pickerOverlay").classList.remove("on");
+  pickerTargetId = null;
+}
+function setStatus(status) {
+  const d = decisions.find(x => x.id === pickerTargetId);
+  if (d) d.status = status;
+  renderDecisions();
+  closePicker();
+}
+function addDecision() {
+  const title = prompt("Decision title:");
+  if (!title) return;
+  decisions.push({ id: nextDecId++, title, status: "open-cold" });
+  renderDecisions();
+}
+
+// ── SVG helpers ─────────────────────────────────────────────
+function svgEl(tag)          { return document.createElementNS(SVG_NS, tag); }
+function setAttrs(el, attrs) { Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v)); }
+
+function svgLine(parent, x1, y1, x2, y2, stroke, strokeW, extra = {}) {
+  const el = svgEl("line");
+  setAttrs(el, { x1, y1, x2, y2, stroke, "stroke-width": strokeW, ...extra });
+  parent.appendChild(el);
+  return el;
+}
+
+function svgText(parent, x, y, text, attrs = {}) {
+  const el = svgEl("text");
+  setAttrs(el, { x, y, ...attrs });
+  el.textContent = text;
+  parent.appendChild(el);
+  return el;
+}
+
+</script>
+</body>
+</html>
